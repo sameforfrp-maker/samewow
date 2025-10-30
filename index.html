@@ -1,40 +1,288 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Catch the Dot!</title>
-<style>
-  body { display:flex; justify-content:center; align-items:center; height:100vh; background:#222; margin:0; }
-  #game { position:relative; width:400px; height:400px; background:#fff; border-radius:10px; }
-  .dot { position:absolute; width:30px; height:30px; border-radius:50%; background:red; cursor:pointer; }
-  #score { position:absolute; top:10px; left:10px; font-family:sans-serif; font-size:20px; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Catch The Dot — Pro</title>
+  <style>
+    :root{--bg:#0f1724;--panel:#0b1220;--accent:#ff3b3b;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    body{background:linear-gradient(180deg,#071029 0%, #0d1724 100%);display:flex;align-items:center;justify-content:center;color:#e6eef8}
+    .container{width:min(920px,96vw);background:linear-gradient(180deg,rgba(255,255,255,0.03),transparent);border-radius:14px;padding:18px;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    h1{font-size:20px;margin:0}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:var(--panel);border:1px solid rgba(255,255,255,0.04);padding:8px 12px;border-radius:10px;color:inherit;cursor:pointer}
+    button.primary{background:linear-gradient(90deg,var(--accent),#ff6b6b);border:none;color:#07101a;font-weight:700}
+    .game-wrap{display:grid;grid-template-columns:1fr 300px;gap:12px}
+    @media (max-width:880px){.game-wrap{grid-template-columns:1fr;}}
+    .stage{background:var(--glass);border-radius:10px;padding:12px;display:flex;flex-direction:column;align-items:center}
+    #arena{position:relative;width:100%;height:520px;background:linear-gradient(180deg,#071a2b 0%, #06202b 100%);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
+    .hud{display:flex;gap:12px;align-items:center;margin-top:10px}
+    .stat{background:rgba(255,255,255,0.02);padding:8px 10px;border-radius:8px;min-width:90px;text-align:center}
+    .stat small{display:block;color:var(--muted);font-size:12px}
+    .sidebar{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:10px;padding:12px;height:520px;overflow:auto}
+    .level-meter{height:8px;background:rgba(255,255,255,0.04);border-radius:999px;overflow:hidden;margin-top:8px}
+    .level-meter > i{display:block;height:100%;background:linear-gradient(90deg,#ff3b3b,#ffb3b3);width:0%}
+    .dot{position:absolute;border-radius:50%;width:46px;height:46px;display:flex;align-items:center;justify-content:center;color:#07101a;font-weight:700;user-select:none}
+    .dot::after{content:'';position:absolute;inset:0;border-radius:50%;box-shadow:0 6px 18px rgba(255,59,59,0.18)}
+    .small{width:34px;height:34px}
+    .tiny{width:22px;height:22px}
+    .muted{opacity:0.85}
+    .footer-note{font-size:12px;color:var(--muted);margin-top:10px}
+    .centered{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%}
+    .menu{display:flex;flex-direction:column;gap:8px;align-items:center}
+    .opt-row{display:flex;gap:8px;align-items:center}
+    input[type=range]{width:120px}
+    .hint{font-size:13px;color:var(--muted);margin-top:8px}
+  </style>
 </head>
 <body>
-<div id="game">
-  <div id="score">Score: 0</div>
-</div>
+  <div class="container">
+    <header>
+      <h1>Catch The Dot — Pro</h1>
+      <div class="controls">
+        <button id="btn-start" class="primary">Start</button>
+        <button id="btn-reset">Reset</button>
+        <button id="btn-sound">🔊</button>
+      </div>
+    </header>
+
+    <div class="game-wrap">
+      <section class="stage">
+        <div id="arena" aria-label="game arena"></div>
+        <div class="hud">
+          <div class="stat"><small>Score</small><div id="display-score">0</div></div>
+          <div class="stat"><small>Highscore</small><div id="display-high">0</div></div>
+          <div class="stat"><small>Level</small><div id="display-level">1</div></div>
+          <div class="stat"><small>Time</small><div id="display-time">00:30</div></div>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <div class="menu centered">
+          <div style="font-weight:700">How to play</div>
+          <div class="hint">Click or tap the red dots to score. Each level gives you a little less time and more dots. Survive as many levels as you can!</div>
+
+          <div style="width:100%;margin-top:12px">
+            <label>Difficulty</label>
+            <div class="opt-row"><input id="difficulty" type="range" min="1" max="3" value="1"><small id="diff-label">Normal</small></div>
+          </div>
+
+          <div style="width:100%">
+            <label>Dot size</label>
+            <div class="opt-row"><input id="size" type="range" min="1" max="3" value="1"><small id="size-label">Medium</small></div>
+          </div>
+
+          <div style="width:100%">
+            <label>Volume</label>
+            <div class="opt-row"><input id="volume" type="range" min="0" max="1" step="0.01" value="0.7"></div>
+          </div>
+
+          <div style="width:100%">
+            <label>Level progress</label>
+            <div class="level-meter"><i id="level-bar"></i></div>
+          </div>
+
+          <div style="width:100%;margin-top:8px;text-align:center">
+            <div id="message">Press Start to play!</div>
+          </div>
+
+          <div class="footer-note">Built for GitHub Pages / Cloudflare Pages — paste this file into your repo and deploy.</div>
+        </div>
+      </aside>
+    </div>
+  </div>
 
 <script>
-let game = document.getElementById('game');
-let scoreEl = document.getElementById('score');
-let score = 0;
+(() => {
+  const arena = document.getElementById('arena');
+  const btnStart = document.getElementById('btn-start');
+  const btnReset = document.getElementById('btn-reset');
+  const btnSound = document.getElementById('btn-sound');
+  const displayScore = document.getElementById('display-score');
+  const displayHigh = document.getElementById('display-high');
+  const displayLevel = document.getElementById('display-level');
+  const displayTime = document.getElementById('display-time');
+  const levelBar = document.getElementById('level-bar');
+  const msg = document.getElementById('message');
+  const difficulty = document.getElementById('difficulty');
+  const sizeRange = document.getElementById('size');
+  const sizeLabel = document.getElementById('size-label');
+  const diffLabel = document.getElementById('diff-label');
+  const volume = document.getElementById('volume');
 
-function spawnDot() {
-  let dot = document.createElement('div');
-  dot.className = 'dot';
-  dot.style.top = Math.random() * 370 + 'px';
-  dot.style.left = Math.random() * 370 + 'px';
-  dot.onclick = () => {
-    score++;
-    scoreEl.innerText = 'Score: ' + score;
-    game.removeChild(dot);
-    spawnDot();
+  // game state
+  let state = {
+    running:false, score:0, level:1, timeLeft:30, high:0, dots:1, dotSize:'medium', difficulty:1, timer:null, tickInterval:1000,
+    soundOn:true
   };
-  game.appendChild(dot);
-}
 
-spawnDot();
+  // load highscore
+  try{ const h = localStorage.getItem('ctd_high'); if(h) state.high = parseInt(h,10); displayHigh.innerText = state.high }catch(e){}
+
+  // audio using WebAudio
+  const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  function playBeep(freq=440,len=0.08,vol=0.6,type='sine'){
+    if(!state.soundOn) return;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.value = vol * parseFloat(volume.value);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + len);
+    setTimeout(()=>{ o.stop(); }, len*1000 + 20);
+  }
+
+  // helpers
+  function rand(min,max){ return Math.random()*(max-min)+min }
+  function clamp(v,a,b){ return Math.max(a,Math.min(b,v)) }
+
+  function sizeClass(){
+    const s = parseInt(sizeRange.value,10);
+    if(s===1){ sizeLabel.innerText='Medium'; return 'medium' }
+    if(s===2){ sizeLabel.innerText='Small'; return 'small' }
+    sizeLabel.innerText='Tiny'; return 'tiny'
+  }
+
+  function diffLabelUpdate(){ const d = parseInt(difficulty.value,10); state.difficulty=d; diffLabel.innerText = d===1? 'Normal' : d===2? 'Hard' : 'Insane' }
+  diffLabelUpdate();
+  sizeClass();
+
+  function resetGame(){
+    state.running=false; state.score=0; state.level=1; state.timeLeft=30; state.dots=1; state.dotSize='medium';
+    displayScore.innerText=state.score; displayLevel.innerText=state.level; displayTime.innerText=formatTime(state.timeLeft);
+    levelBar.style.width = '0%'; msg.innerText='Press Start to play!';
+    clearArena();
+  }
+
+  function clearArena(){ while(arena.firstChild) arena.removeChild(arena.firstChild) }
+
+  function spawnDot() {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    const sizeMap = { 'medium':46, 'small':34, 'tiny':22 };
+    const cls = state.dotSize === 'medium' ? '' : state.dotSize === 'small' ? 'small' : 'tiny';
+    if(cls) d.classList.add(cls);
+    const w = sizeMap[state.dotSize];
+    // random color with red accent
+    const r = 220 + Math.floor(Math.random()*35);
+    const g = Math.floor(30 + Math.random()*40);
+    d.style.background = `rgb(${r},${g},${g})`;
+    // position
+    const rect = arena.getBoundingClientRect();
+    const maxX = rect.width - w; const maxY = rect.height - w;
+    const x = rand(6,maxX-6); const y = rand(6,maxY-6);
+    d.style.left = x + 'px'; d.style.top = y + 'px';
+
+    // animation: small scale pop
+    d.animate([{transform:'scale(0)'},{transform:'scale(1)'}],{duration:220,easing:'cubic-bezier(.2,.9,.2,1)'});
+
+    // click & touch
+    function got(e){
+      e.stopPropagation();
+      // award points based on proximity/time
+      state.score += Math.round(10 * state.level * (1 + (state.difficulty-1)*0.4));
+      displayScore.innerText = state.score;
+      playBeep(880 - (state.level*20),0.06,0.8,'sine');
+      arena.removeChild(d);
+      // spawn a new dot after small delay
+      setTimeout(()=>{ if(state.running) spawnDot(); }, 200);
+      // level progress
+      const progress = clamp((state.score % (state.level*50)) / (state.level*50) * 100,0,100);
+      levelBar.style.width = progress + '%';
+    }
+    d.addEventListener('click', got);
+    d.addEventListener('touchstart', function(e){ got(e); }, {passive:false});
+
+    arena.appendChild(d);
+
+    // optional gentle drift
+    let vx = rand(-0.6,0.6), vy = rand(-0.6,0.6);
+    const moveInterval = setInterval(()=>{
+      if(!arena.contains(d)) return clearInterval(moveInterval);
+      const r2 = arena.getBoundingClientRect();
+      let nx = parseFloat(d.style.left), ny = parseFloat(d.style.top);
+      nx += vx; ny += vy;
+      if(nx < 6 || nx > r2.width - w - 6) vx = -vx;
+      if(ny < 6 || ny > r2.height - w - 6) vy = -vy;
+      d.style.left = nx + 'px'; d.style.top = ny + 'px';
+    }, 40 - state.difficulty*8);
+  }
+
+  function startLevel(){
+    clearArena();
+    state.running = true;
+    // configure per level
+    state.dotSize = sizeRange.value === '1' ? 'medium' : sizeRange.value === '2' ? 'small' : 'tiny';
+    state.dots = Math.min(1 + state.level - 1 + state.difficulty - 1, 8); // more dots with level+diff
+    state.timeLeft = Math.max(8, 30 - (state.level-1)*3 - (state.difficulty-1)*4);
+    displayLevel.innerText = state.level;
+    displayTime.innerText = formatTime(state.timeLeft);
+    displayScore.innerText = state.score;
+    levelBar.style.width = '0%';
+    msg.innerText = 'Level ' + state.level;
+
+    // spawn initial dots
+    for(let i=0;i<state.dots;i++) spawnDot();
+
+    // start countdown
+    state.timer = setInterval(()=>{
+      if(!state.running){ clearInterval(state.timer); return }
+      state.timeLeft -= 1;
+      displayTime.innerText = formatTime(state.timeLeft);
+      if(state.timeLeft <= 0){ clearInterval(state.timer); endLevel(); }
+    }, 1000);
+  }
+
+  function endLevel(){
+    state.running = false;
+    // compute pass condition: score increase relative to level
+    const needed = Math.max(20, state.level * 30 - (state.difficulty-1)*6);
+    const passed = state.score >= needed * state.level;
+    if(passed){ playBeep(1400,0.2,0.9,'triangle'); msg.innerText = 'Level complete!';
+      state.level += 1; // next level
+      // small reward
+      state.score += 15 * state.level;
+      displayScore.innerText = state.score;
+      // auto-start next level shortly
+      setTimeout(()=>{ startLevel(); }, 900);
+    } else {
+      playBeep(240,0.6,0.9,'sawtooth'); msg.innerText = 'Game over — you did not reach the target.';
+      // save highscore
+      if(state.score > state.high){ state.high = state.score; try{ localStorage.setItem('ctd_high', state.high); }catch(e){}; displayHigh.innerText = state.high; msg.innerText = 'New highscore! ' + state.high; }
+      // show final screen and reset after a pause
+      setTimeout(()=>{ resetGame(); }, 1400);
+    }
+    clearArena();
+  }
+
+  function formatTime(sec){ const m = Math.floor(sec/60); const s = sec % 60; return (m?m+':':'') + String(s).padStart(2,'0') }
+
+  // UI events
+  btnStart.addEventListener('click', ()=>{
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    if(state.running) return; state.score = 0; state.level = 1; startLevel();
+  });
+  btnReset.addEventListener('click', ()=>{ resetGame(); });
+  btnSound.addEventListener('click', ()=>{ state.soundOn = !state.soundOn; btnSound.innerText = state.soundOn? '🔊' : '🔇'; });
+
+  difficulty.addEventListener('input', ()=>{ diffLabelUpdate(); });
+  sizeRange.addEventListener('input', ()=>{ sizeClass(); });
+
+  // tap anywhere to dodge (for mobile) -> small bonus if tapping empty space
+  arena.addEventListener('click', (e)=>{
+    if(!state.running) return;
+    // if clicked not on a dot
+    if(e.target === arena){ state.score += 1; displayScore.innerText = state.score; playBeep(520,0.04,0.3); }
+  });
+
+  // init
+  resetGame();
+
+})();
 </script>
 </body>
 </html>
