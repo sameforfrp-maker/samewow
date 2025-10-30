@@ -3,32 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Classic Snake Game</title>
+<title>Graphic Snake Game</title>
 <style>
-  body { margin:0; display:flex; justify-content:center; align-items:center; height:100vh; background:#111; color:#fff; font-family:sans-serif; }
-  canvas { background:#222; display:block; border:4px solid #ff3b3b; border-radius:12px; }
-  h1 { position:absolute; top:20px; text-align:center; width:100%; font-size:24px; color:#ff6b6b; }
+  body { margin:0; display:flex; justify-content:center; align-items:center; height:100vh; background:#111; font-family:sans-serif; }
+  canvas { background:#222; border-radius:16px; display:block; border:4px solid #ff3b3b; }
+  h1 { position:absolute; top:20px; width:100%; text-align:center; color:#ff6b6b; font-size:24px; }
 </style>
 </head>
 <body>
 <h1>Score: <span id="score">0</span></h1>
-<canvas id="game" width="400" height="400"></canvas>
+<canvas id="game" width="500" height="500"></canvas>
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
-
 const grid = 20;
-let snake = [{x:200,y:200}];
-let dx = grid;
-let dy = 0;
+let snake = [{x:240,y:240}];
+let dx = grid, dy = 0;
 let food = spawnFood();
 let score = 0;
-let speed = 200;
+let speed = 150;
 
 function spawnFood(){
-  const x = Math.floor(Math.random()*20)*grid;
-  const y = Math.floor(Math.random()*20)*grid;
+  const x = Math.floor(Math.random()*25)*grid;
+  const y = Math.floor(Math.random()*25)*grid;
   return {x,y};
 }
 
@@ -36,13 +34,10 @@ function gameLoop(){
   moveSnake();
   if(checkCollision()) return gameOver();
   if(eatFood()){
-    score += 1;
-    scoreEl.innerText = score;
+    score++; scoreEl.innerText=score;
     food = spawnFood();
-    if(speed > 60) speed -= 5;
-  } else {
-    snake.pop();
-  }
+    if(speed>50) speed-=3;
+  } else snake.pop();
   draw();
   setTimeout(gameLoop, speed);
 }
@@ -54,12 +49,8 @@ function moveSnake(){
 
 function checkCollision(){
   const head = snake[0];
-  // walls
   if(head.x<0||head.x>=canvas.width||head.y<0||head.y>=canvas.height) return true;
-  // self collision
-  for(let i=1;i<snake.length;i++){
-    if(head.x===snake[i].x && head.y===snake[i].y) return true;
-  }
+  for(let i=1;i<snake.length;i++) if(head.x===snake[i].x && head.y===snake[i].y) return true;
   return false;
 }
 
@@ -69,23 +60,24 @@ function eatFood(){
 }
 
 function draw(){
-  ctx.fillStyle="#222"; ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#ff3b3b";
-  for(let seg of snake){
-    ctx.fillRect(seg.x,seg.y,grid-1,grid-1);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // draw food
+  ctx.fillStyle='#ff3b3b';
+  ctx.beginPath();
+  ctx.arc(food.x+grid/2,food.y+grid/2,grid/2,0,Math.PI*2);
+  ctx.fill();
+  // draw snake
+  for(let i=0;i<snake.length;i++){
+    ctx.fillStyle = i===0 ? '#ffb347' : '#ff6b6b';
+    ctx.beginPath();
+    ctx.arc(snake[i].x+grid/2,snake[i].y+grid/2,grid/2-1,0,Math.PI*2);
+    ctx.fill();
   }
-  ctx.fillStyle="#ffb3b3";
-  ctx.fillRect(food.x,food.y,grid-1,grid-1);
 }
 
 function gameOver(){
   alert('Game Over! Your score: '+score);
-  snake = [{x:200,y:200}];
-  dx = grid; dy=0;
-  score=0;
-  speed=200;
-  food = spawnFood();
-  scoreEl.innerText = score;
+  snake = [{x:240,y:240}]; dx=grid; dy=0; score=0; speed=150; food=spawnFood(); scoreEl.innerText=score;
 }
 
 document.addEventListener('keydown', e=>{
